@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>塔罗牌洗牌</title>
+<style>
+    /* 原有样式保持不变，只添加新样式 */
+    
+    /* 占卜按钮样式 */
+    #startDivinationBtn {
+        background: linear-gradient(45deg,rgba(0,255,0,0.3),rgba(0,255,0,0.1));
+        border: 2px solid #00ff00;
+        color: #00ff00;
+    }
+    
+    /* 解读弹窗样式 */
+    .interpretation-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    
+    .modal-content {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        padding: 30px;
+        border-radius: 15px;
+        border: 2px solid #ffd700;
+        max-width: 500px;
+        width: 90%;
+        color: #fff;
+        position: relative;
+    }
+    
+    .close-modal {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 24px;
+        cursor: pointer;
+        color: #ffd700;
+    }
+    
+    .card-position {
+        color: #ffd700;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+	
+	 * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0a0a1a, #050510, #020208);
+        color:#e6e6e6;
+        min-height:100vh;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        padding:20px;
+        position:relative;
+        overflow-x:hidden;
+    }
+    
+    html, body {
+        background: #020208;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .container { 
+        max-width:1200px; 
+        width:100%; 
+        margin:0 auto;
+        position:relative;
+        z-index:1;
+    }
+    
+    .animation-container {
+        position:relative; 
+        width:100%; 
+        height:70vh;
+        overflow:hidden; 
+        margin:25px 0;
+        background: transparent;
+    }
+    
+    /* 塔罗牌符号背景元素 - 放在最底层 */
+    .tarot-symbol {
+        position: absolute;
+        font-size: 3rem;
+        color: rgba(255,215,0,0.1);
+        animation: symbolFloat 8s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 1; /* 降低层级 */
+    }
+    
+    @keyframes symbolFloat {
+        0%, 100% { 
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 0.1;
+        }
+        25% { 
+            transform: translate(20px, -15px) rotate(90deg);
+            opacity: 0.3;
+        }
+        50% { 
+            transform: translate(-15px, 20px) rotate(180deg);
+            opacity: 0.1;
+        }
+        75% { 
+            transform: translate(15px, 15px) rotate(270deg);
+            opacity: 0.2;
+        }
+    }
+    
+    /* 增大牌的大小 */
+    .card {
+        position:absolute; 
+        width:140px;
+        height:220px;
+        border-radius:12px;
+        box-shadow:0 8px 25px rgba(0,0,0,0.8);
+        transition:all 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+        transform-style: preserve-3d; 
+        cursor:pointer;
+        z-index: 20; /* 提高牌的层级 */
+    }
+    
+    .card-front,.card-back{
+        position:absolute;
+        width:100%;
+        height:100%;
+        backface-visibility:hidden;
+        border-radius:12px; 
+        display:flex; 
+        align-items:center; 
+        justify-content:center;
+        flex-direction:column; 
+        padding:15px;
+        overflow: hidden;
+    }
+    
+    .card-front { 
+        background:linear-gradient(135deg,#f8f8f8,#e8e8e8); 
+        color:#333; 
+        transform:rotateY(180deg);
+    }
+    
+    .card-back { 
+        background:linear-gradient(45deg,#8b0000,#4b0082,#8b0000); 
+        color:#ffd700; 
+        border:3px solid #ffd700;
+    }
+    
+    .card.flipped{ 
+        transform:rotateY(180deg);
+        box-shadow:0 12px 35px rgba(0,0,0,0.8),
+                  0 0 20px rgba(255,215,0,0.6);
+        z-index: 1000 !important; /* 确保翻转的牌在最上面 */
+    }
+    
+    .card-symbol{ 
+        font-size:2.8rem;
+        margin:10px 0;
+    }
+    
+    .card-name{ 
+        font-size:1.1rem;
+        font-weight:bold; 
+        text-align:center;
+    }
+    
+    .mystic-symbol{ 
+        font-size:3rem;
+        margin-bottom:10px;
+        color:#ffd700;
+    }
+    
+    .controls{ 
+        display:flex; 
+        justify-content:center; 
+        gap:20px; 
+        margin-bottom:25px; 
+        flex-wrap:wrap; 
+    }
+    
+    .btn{
+        padding:12px 25px; 
+        background:linear-gradient(45deg,rgba(255,215,0,0.3),rgba(255,215,0,0.1));
+        color:#ffd700; 
+        border:2px solid #ffd700;
+        border-radius:50px; 
+        cursor:pointer; 
+        font-weight:bold; 
+        transition:all 0.4s ease;
+        backdrop-filter:blur(10px);
+        text-shadow:0 0 10px rgba(255,215,0,0.5);
+        box-shadow:0 5px 15px rgba(255,215,0,0.3);
+    }
+    
+    .btn:hover{ 
+        background:linear-gradient(45deg,rgba(255,215,0,0.5),rgba(255,215,0,0.2));
+        transform:translateY(-3px);
+        box-shadow:0 8px 25px rgba(255,215,0,0.5);
+    }
+    
+    .btn:disabled{ 
+        opacity:0.5; 
+        cursor:not-allowed; 
+        transform:none;
+    }
+    
+    .status{ 
+        text-align:center; 
+        margin:15px 0; 
+        color:#ffd700; 
+        min-height:25px;
+        font-size:1.2rem;
+        text-shadow:0 0 15px rgba(255,215,0,0.7);
+    }
+
+    /* 平铺滚动 */
+    .card-track{
+        display:flex; 
+        height:100%; 
+        position:absolute; 
+        left:0;
+        top: 50%;
+        transform: translateY(-50%);
+        animation:scrollLeft 35s linear infinite;
+        align-items: center;
+        z-index: 15;
+    }
+    
+    .track-card{ 
+        flex:0 0 auto; 
+        width:140px;
+        height:220px;
+        margin-right:-100px;
+        border-radius:12px; 
+        cursor:pointer; 
+        transition:all 0.4s; 
+        transform-style: preserve-3d; 
+        position:relative;
+        box-shadow:0 6px 20px rgba(0,0,0,0.7);
+    }
+    
+    .track-card:hover{ 
+        margin-right:-80px;
+        transform:translateY(-8px) scale(1.05); 
+        z-index:25;
+        box-shadow:0 12px 35px rgba(0,0,0,0.8),
+                  0 0 20px rgba(255,215,0,0.6);
+    }
+
+    .track-card.flipped{ 
+        transform:rotateY(180deg) translateY(-8px) scale(1.05);
+        z-index: 1000 !important; /* 确保翻转的牌在最上面 */
+    }
+
+    /* 图片样式 */
+    .card-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .back-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    /* 粒子效果 - 放在牌的前面 */
+    .particle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #ffd700;
+        border-radius: 50%;
+        pointer-events: none;
+        box-shadow: 0 0 20px #ffd700;
+        animation: particleFloat 2s ease-out forwards;
+        z-index: 25;
+    }
+    
+    /* 大粒子效果 */
+    .big-particle {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: radial-gradient(circle, #ffd700, #ffed4e);
+        border-radius: 50%;
+        pointer-events: none;
+        box-shadow: 0 0 30px #ffd700, 0 0 60px rgba(255,215,0,0.5);
+        animation: bigParticleFloat 1.5s ease-out forwards;
+        z-index: 25;
+    }
+    
+    @keyframes particleFloat {
+        0% {
+            opacity: 1;
+            transform: translate(0, 0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(var(--tx), var(--ty)) scale(0);
+        }
+    }
+    
+    @keyframes bigParticleFloat {
+        0% {
+            opacity: 1;
+            transform: translate(0, 0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(var(--tx), var(--ty)) scale(0);
+        }
+    }
+    
+    @keyframes scrollLeft{
+        0%{ transform: translateY(-50%) translateX(0); }
+        100%{ transform: translateY(-50%) translateX(-50%); }
+    }
+    
+    /* 仪式灯光效果 */
+    .ritual-light {
+        position:absolute;
+        top:50%;
+        left:50%;
+        width:200px;
+        height:200px;
+        background:radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0) 70%);
+        border-radius:50%;
+        transform:translate(-50%,-50%);
+        pointer-events:none;
+        z-index: 5;
+        animation:lightPulse 3s ease-in-out infinite;
+        display: none;
+    }
+    
+    @keyframes lightPulse {
+        0%, 100% { opacity:0.3; transform:translate(-50%,-50%) scale(1); }
+        50% { opacity:0.6; transform:translate(-50%,-50%) scale(1.2); }
+    }
+    
+    /* 背景闪烁效果 */
+    .bg-flash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, rgba(255,215,0,0.15) 0%, transparent 70%);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 0;
+        animation: bgFlash 4s ease-in-out infinite;
+    }
+    
+    @keyframes bgFlash {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 0.3; }
+    }
+    
+    /* 强烈背景闪烁效果 */
+    .bg-flash-intense {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, rgba(255,215,0,0.3) 0%, transparent 70%);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 0;
+        animation: bgFlashIntense 2s ease-in-out infinite;
+    }
+    
+    @keyframes bgFlashIntense {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 0.5; }
+    }
+<    /* 占卜按钮样式 */
+    #startDivinationBtn {
+        background: linear-gradient(45deg,rgba(0,255,0,0.3),rgba(0,255,0,0.1));
+        border: 2px solid #00ff00;
+        color: #00ff00;
+    }
+    
+    /* 移除弹窗相关样式 */
+</style>
+</head>
+<body>
+    <!-- 背景闪烁效果 -->
+    <div class="bg-flash"></div>
+    <div class="bg-flash-intense" id="bgFlashIntense" style="display:none;"></div>
+
+    <div class="container">
+        <div class="status" id="statusMessage">牌已准备就绪，等待洗牌开始...</div>
+
+        <div class="animation-container" id="animationArea">
+            <!-- 塔罗牌符号背景 - 放在最前面 -->
+            <div id="tarotSymbolsContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></div>
+            <!-- 仪式灯光 -->
+            <div class="ritual-light" id="ritualLight"></div>
+            <!-- 粒子容器 -->
+            <div id="particlesContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:30;"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="startShuffleBtn">开始洗牌</button>
+            <button class="btn" id="startDivinationBtn" style="display:none;">开始占卜</button>
+            <button class="btn" id="resetBtn" style="display:none;">重新开始</button>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+    const animationArea=document.getElementById('animationArea');
+    const startShuffleBtn=document.getElementById('startShuffleBtn');
+    const startDivinationBtn=document.getElementById('startDivinationBtn');
+    const resetBtn=document.getElementById('resetBtn');
+    const statusMessage=document.getElementById('statusMessage');
+    
+    let particlesContainer=document.getElementById('particlesContainer');
+    let tarotSymbolsContainer = document.getElementById('tarotSymbolsContainer');
+    let ritualLight=document.getElementById('ritualLight');
+    const bgFlashIntense = document.getElementById('bgFlashIntense');
+
+    // 塔罗牌符号
+    const tarotSymbols = ["🃏", "🪄", "🌙", "👑", "⚔️", "📖", "💑", "🛡️", "🦁", "🧙", "🔄", "⚖️", "🙃", "💀", "🥄", "😈", "🏰", "⭐", "🌕", "☀️", "👼", "🌍", "✦", "♠️", "♥️", "♦️", "♣️"];
+
+    // 塔罗牌数据 - 将从JSON文件加载
+    let tarotCards = [];
+    let backImagePath = 'img/back.jpg';
+    
+    // 占卜相关变量
+    let selectedCards = []; // 选中的三张牌
+    let flippedCount = 0; // 已翻转的牌数量
+    const MAX_FLIPS = 3; // 三张牌阵
+
+    // 加载塔罗牌数据
+    async function loadTarotData() {
+        try {
+            const response = await fetch('tarot-images.json');
+            const data = await response.json();
+            
+            // 过滤出大阿卡纳牌
+            tarotCards = data.cards.filter(card => card.arcana === "Major Arcana");
+            
+            // 确保图片路径正确
+            tarotCards.forEach(card => {
+                if (card.img) {
+                    card.img = 'img/' + card.img;
+                }
+            });
+            
+            console.log('塔罗牌数据加载成功:', tarotCards.length, '张牌');
+            initializeDeck();
+        } catch (error) {
+            console.error('加载塔罗牌数据失败:', error);
+            // 如果加载失败，使用默认数据
+            tarotCards = [
+                {name: "The Fool", number: "0", img: "img/m00.jpg"},
+                {name: "The Magician", number: "1", img: "img/m01.jpg"},
+                {name: "The High Priestess", number: "2", img: "img/m02.jpg"},
+                {name: "The Empress", number: "3", img: "img/m03.jpg"},
+                {name: "The Emperor", number: "4", img: "img/m04.jpg"},
+                {name: "The Hierophant", number: "5", img: "img/m05.jpg"},
+                {name: "The Lovers", number: "6", img: "img/m06.jpg"},
+                {name: "The Chariot", number: "7", img: "img/m07.jpg"},
+                {name: "Strength", number: "8", img: "img/m08.jpg"},
+                {name: "The Hermit", number: "9", img: "img/m09.jpg"},
+                {name: "Wheel of Fortune", number: "10", img: "img/m10.jpg"},
+                {name: "Justice", number: "11", img: "img/m11.jpg"},
+                {name: "The Hanged Man", number: "12", img: "img/m12.jpg"},
+                {name: "Death", number: "13", img: "img/m13.jpg"},
+                {name: "Temperance", number: "14", img: "img/m14.jpg"},
+                {name: "The Devil", number: "15", img: "img/m15.jpg"},
+                {name: "The Tower", number: "16", img: "img/m16.jpg"},
+                {name: "The Star", number: "17", img: "img/m17.jpg"},
+                {name: "The Moon", number: "18", img: "img/m18.jpg"},
+                {name: "The Sun", number: "19", img: "img/m19.jpg"},
+                {name: "Judgement", number: "20", img: "img/m20.jpg"},
+                {name: "The World", number: "21", img: "img/m21.jpg"}
+            ];
+            initializeDeck();
+        }
+    }
+
+    // 创建塔罗牌符号背景
+    function createTarotSymbols() {
+        tarotSymbolsContainer.innerHTML = '';
+        const areaWidth = animationArea.offsetWidth;
+        const areaHeight = animationArea.offsetHeight;
+        
+        for(let i = 0; i < 15; i++) { // 减少符号数量
+            const symbol = document.createElement('div');
+            symbol.className = 'tarot-symbol';
+            symbol.textContent = tarotSymbols[Math.floor(Math.random() * tarotSymbols.length)];
+            symbol.style.left = Math.random() * 100 + '%';
+            symbol.style.top = Math.random() * 100 + '%';
+            symbol.style.animationDelay = (Math.random() * 8) + 's';
+            symbol.style.fontSize = (Math.random() * 1.5 + 1.5) + 'rem'; // 减小符号大小
+            symbol.style.opacity = Math.random() * 0.15 + 0.05; // 降低透明度
+            tarotSymbolsContainer.appendChild(symbol);
+        }
+    }
+
+    let cards=[],isAnimating=false;
+
+    // 粒子效果函数
+    function createParticles(x, y, count = 20, bigParticles = false) {
+        for(let i = 0; i < count; i++) {
+            const particle = document.createElement('div');
+            particle.className = bigParticles && i % 3 === 0 ? 'big-particle' : 'particle';
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 150;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.setProperty('--tx', tx + 'px');
+            particle.style.setProperty('--ty', ty + 'px');
+            particle.style.animationDelay = (Math.random() * 0.8) + 's';
+            
+            particlesContainer.appendChild(particle);
+            
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 2500);
+        }
+    }
+
+    // 仪式灯光效果
+    function startRitualFocus() {
+        ritualLight.style.display='block';
+        document.querySelector('.bg-flash').style.animation = 'bgFlash 1.5s ease-in-out infinite';
+        bgFlashIntense.style.display = 'block';
+        
+        // 洗牌时隐藏塔罗牌符号
+        tarotSymbolsContainer.style.opacity = '0.05';
+    }
+
+    function endRitualFocus() {
+        ritualLight.style.display='none';
+        document.querySelector('.bg-flash').style.animation = 'bgFlash 4s ease-in-out infinite';
+        bgFlashIntense.style.display = 'none';
+        
+        // 洗牌完成后恢复塔罗牌符号
+        tarotSymbolsContainer.style.opacity = '1';
+    }
+
+    // 洗牌函数 - 随机打乱牌组
+    function shuffleDeck(cardArray) {
+        const shuffled = [...cardArray];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    function initializeDeck(){
+        // 清空动画区域
+        animationArea.innerHTML='<div id="tarotSymbolsContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></div><div class="ritual-light" id="ritualLight"></div><div id="particlesContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:30;"></div>';
+        particlesContainer = document.getElementById('particlesContainer');
+        tarotSymbolsContainer = document.getElementById('tarotSymbolsContainer');
+        ritualLight = document.getElementById('ritualLight');
+        ritualLight.style.display='none';
+        
+        // 创建塔罗牌符号背景
+        createTarotSymbols();
+        
+        cards=[];
+        const areaWidth=animationArea.offsetWidth;
+        const areaHeight=animationArea.offsetHeight;
+        
+        // 洗牌
+        const shuffledCards = shuffleDeck([...tarotCards]);
+        
+        for(let i=0;i<shuffledCards.length;i++){
+            const cardData=shuffledCards[i];
+            const card=document.createElement('div');
+            card.className='card';
+            card.dataset.id=i;
+            card.dataset.cardName=cardData.name;
+            card.innerHTML=`
+                <div class="card-front">
+                    <img src="${cardData.img}" alt="${cardData.name}" class="card-image" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'card-symbol\\'>✦</div><div class=\\'card-name\\'>${cardData.name}</div>';">
+                </div>
+                <div class="card-back">
+                    <img src="${backImagePath}" alt="牌背" class="back-image" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'mystic-symbol\\'>✦</div><div>塔罗牌</div>';">
+                </div>
+            `;
+            card.style.left=`${(areaWidth-140)/2}px`;
+            card.style.top=`${(areaHeight-220)/2}px`;
+            card.style.zIndex = 20 + i;
+            
+            // 添加点击事件 - 翻转牌
+            card.addEventListener('click', function() {
+                handleCardClick(this);
+            });
+            
+            animationArea.appendChild(card);
+            cards.push(card);
+        }
+        statusMessage.textContent='牌已准备就绪，等待洗牌开始...';
+        
+        // 重置占卜状态
+        flippedCount = 0;
+        selectedCards = [];
+        
+        // 重置按钮状态
+        startShuffleBtn.style.display = 'block';
+        startShuffleBtn.disabled = false;
+        startShuffleBtn.textContent = '开始洗牌';
+        startDivinationBtn.style.display = 'none';
+        resetBtn.style.display = 'none';
+    }
+
+    // 处理牌点击事件
+    function handleCardClick(cardElement) {
+        // 如果在占卜模式且已达到最大翻牌数，则不允许再翻牌
+        if (startDivinationBtn.style.display === 'block' && flippedCount >= MAX_FLIPS && !cardElement.classList.contains('flipped')) {
+            statusMessage.textContent = `您已经选择了 ${MAX_FLIPS} 张牌，请点击"开始占卜"进行解读`;
+            return;
+        }
+        
+        if (!cardElement.classList.contains('flipped')) {
+            // 计算牌堆上方50%的位置
+            const areaHeight = animationArea.offsetHeight;
+            const topPosition = areaHeight * 0.5 - 220; // 牌堆上方50%位置
+            
+            cardElement.style.top = `${topPosition}px`;
+            cardElement.style.zIndex = 1000; // 确保在最上层
+            
+            // 记录选中的牌
+            if (startDivinationBtn.style.display === 'block') {
+                flippedCount++;
+                const cardName = cardElement.dataset.cardName;
+                const cardData = tarotCards.find(card => card.name === cardName);
+                if (cardData) {
+                    selectedCards.push({
+                        ...cardData,
+                        position: flippedCount // 记录位置：1-过去，2-现在，3-未来
+                    });
+                }
+                
+                statusMessage.textContent = `已选择 ${flippedCount}/${MAX_FLIPS} 张牌`;
+                
+                // 如果已选三张牌，提示用户可以开始占卜
+                if (flippedCount === MAX_FLIPS) {
+                    statusMessage.textContent = `已选择 ${MAX_FLIPS} 张牌，请点击"开始占卜"进行解读`;
+                }
+            }
+        }
+        cardElement.classList.toggle('flipped');
+    }
+
+    function completeShuffle() {
+        statusMessage.textContent='⭐ 洗牌完成！请选择您要抽取的牌...';
+        
+        const areaWidth=animationArea.offsetWidth;
+        const areaHeight=animationArea.offsetHeight;
+        const centerLeft=(areaWidth-140)/2;
+        const centerTop=(areaHeight-220)/2;
+        createParticles(centerLeft+70, centerTop+110, 50, true);
+        
+        setTimeout(() => {
+            endRitualFocus();
+            animationArea.innerHTML='<div id="tarotSymbolsContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></div><div class="ritual-light" id="ritualLight"></div><div id="particlesContainer" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:30;"></div>';
+            particlesContainer = document.getElementById('particlesContainer');
+            tarotSymbolsContainer = document.getElementById('tarotSymbolsContainer');
+            ritualLight = document.getElementById('ritualLight');
+            ritualLight.style.display='none';
+            
+            // 重新创建塔罗牌符号
+            createTarotSymbols();
+            
+            const cardTrack=document.createElement('div');
+            cardTrack.className='card-track';
+            animationArea.appendChild(cardTrack);
+            
+            // 创建唯一的牌组 - 修复重复牌的问题
+            const uniqueCards = shuffleDeck([...tarotCards]);
+            
+            // 只创建一套牌，避免重复
+            uniqueCards.forEach((cardData, index)=>{
+                const trackCard=document.createElement('div');
+                trackCard.className='track-card';
+                trackCard.dataset.cardName = cardData.name;
+                trackCard.dataset.uniqueId = index; // 添加唯一标识
+                trackCard.innerHTML=`
+                    <div class="card-front">
+                        <img src="${cardData.img}" alt="${cardData.name}" class="card-image" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'card-symbol\\'>✦</div><div class=\\'card-name\\'>${cardData.name}</div>';">
+                    </div>
+                    <div class="card-back">
+                        <img src="${backImagePath}" alt="牌背" class="back-image" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'mystic-symbol\\'>✦</div><div>塔罗牌</div>';">
+                    </div>
+                `;
+                trackCard.addEventListener('click', function() {
+                    handleCardClick(this);
+                });
+                cardTrack.appendChild(trackCard);
+            });
+            
+            isAnimating=false;
+            
+            startShuffleBtn.style.display = 'none';
+            startDivinationBtn.style.display = 'block';
+            resetBtn.style.display = 'block';
+            resetBtn.disabled = false;
+            
+            // 重置占卜状态
+            flippedCount = 0;
+            selectedCards = [];
+            statusMessage.textContent = `请选择 ${MAX_FLIPS} 张牌进行占卜 (0/${MAX_FLIPS})`;
+        }, 1200);
+    }
+
+    // 开始占卜函数 - 跳转到解读页面
+    function startDivination() {
+        if (flippedCount < MAX_FLIPS) {
+            statusMessage.textContent = `请先选择 ${MAX_FLIPS} 张牌`;
+            return;
+        }
+        
+        // 将选中的牌数据保存到localStorage
+        localStorage.setItem('selectedTarotCards', JSON.stringify(selectedCards));
+        
+        // 跳转到解读页面
+        window.location.href = 'interpretation.html';
+    }
+
+    function shuffleAnimation(){
+        if(isAnimating) return;
+        isAnimating=true;
+        startShuffleBtn.disabled=true;
+        
+        startRitualFocus();
+        statusMessage.textContent='✨ 洗牌开始... ✨';
+        
+        const areaWidth=animationArea.offsetWidth;
+        const areaHeight=animationArea.offsetHeight;
+        const centerLeft=(areaWidth-140)/2;
+        const centerTop=(areaHeight-220)/2;
+
+        createParticles(centerLeft+70, centerTop+110, 40, true);
+
+        setTimeout(()=>{
+            statusMessage.textContent='🌀 能量汇聚中...';
+            cards.forEach((card,i)=>{
+                setTimeout(()=>{
+                    card.style.left=`${Math.random()*(areaWidth-140)}px`;
+                    card.style.top=`${Math.random()*(areaHeight-220)}px`;
+                    card.style.zIndex = 20 + i;
+                    createParticles(
+                        parseFloat(card.style.left) + 70, 
+                        parseFloat(card.style.top) + 110, 
+                        5, 
+                        i % 4 === 0
+                    );
+                },i*30);
+            });
+        },800);
+
+        setTimeout(()=>{
+            statusMessage.textContent='🌪️ 命运交错中...';
+            const half=Math.floor(cards.length/2);
+            const leftStack=cards.slice(0,half);
+            const rightStack=cards.slice(half);
+            
+            createParticles(areaWidth*0.25, centerTop+110, 20, true);
+            createParticles(areaWidth*0.65, centerTop+110, 20, true);
+            
+            leftStack.forEach((card,i)=>{ 
+                setTimeout(()=>{ 
+                    card.style.left=`${areaWidth*0.25}px`; 
+                    card.style.top=`${centerTop}px`; 
+                    card.style.zIndex = 20 + i;
+                    createParticles(areaWidth*0.25, centerTop+110, 3);
+                }, i*40); 
+            });
+            
+            rightStack.forEach((card,i)=>{ 
+                setTimeout(()=>{ 
+                    card.style.left=`${areaWidth*0.65}px`; 
+                    card.style.top=`${centerTop}px`; 
+                    card.style.zIndex = 20 + half + i;
+                    createParticles(areaWidth*0.65, centerTop+110, 3);
+                }, i*40); 
+            });
+            
+            setTimeout(()=>{
+                cards.forEach((card,i)=>{ 
+                    setTimeout(()=>{ 
+                        card.style.left=`${centerLeft}px`; 
+                        card.style.top=`${centerTop}px`; 
+                        card.style.zIndex = 20 + i;
+                        createParticles(centerLeft+70, centerTop+110, 3, i > cards.length - 5);
+                    }, i*50); 
+                });
+            },Math.max(leftStack.length,rightStack.length)*40+400);
+        },cards.length*30+1500);
+
+        setTimeout(()=>{
+            statusMessage.textContent='🔮 命运之轮转动...';
+            const third=Math.floor(cards.length/3);
+            const part1=cards.slice(0,third),
+                  part2=cards.slice(third,third*2),
+                  part3=cards.slice(third*2);
+            
+            createParticles(areaWidth*0.25, centerTop+110, 15, true);
+            createParticles(areaWidth*0.45, centerTop+110, 15, true);
+            createParticles(areaWidth*0.65, centerTop+110, 15, true);
+            
+            part1.forEach((c,i)=>{ 
+                setTimeout(()=>{ 
+                    c.style.left=`${areaWidth*0.25}px`; 
+                    c.style.top=`${centerTop}px`; 
+                    c.style.zIndex = 20 + i;
+                    createParticles(areaWidth*0.25, centerTop+110, 2);
+                }, i*50); 
+            });
+            
+            part2.forEach((c,i)=>{ 
+                setTimeout(()=>{ 
+                    c.style.left=`${areaWidth*0.45}px`; 
+                    c.style.top=`${centerTop}px`; 
+                    c.style.zIndex = 20 + third + i;
+                    createParticles(areaWidth*0.45, centerTop+110, 2);
+                }, i*50); 
+            });
+            
+            part3.forEach((c,i)=>{ 
+                setTimeout(()=>{ 
+                    c.style.left=`${areaWidth*0.65}px`; 
+                    c.style.top=`${centerTop}px`; 
+                    c.style.zIndex = 20 + third*2 + i;
+                    createParticles(areaWidth*0.65, centerTop+110, 2);
+                }, i*50); 
+            });
+            
+            setTimeout(()=>{
+                cards.forEach((c,i)=>{ 
+                    setTimeout(()=>{ 
+                        c.style.left=`${centerLeft}px`; 
+                        c.style.top=`${centerTop}px`; 
+                        c.style.zIndex = 20 + i;
+                        createParticles(centerLeft+70, centerTop+110, 3, i > cards.length - 8);
+                    }, i*60); 
+                });
+            },Math.max(part1.length,part2.length,part3.length)*50+600);
+        },cards.length*50+3000);
+
+        setTimeout(completeShuffle, cards.length*60+4500);
+    }
+
+    function resetShuffle() {
+        loadTarotData();
+    }
+
+    // 初始化
+    startShuffleBtn.addEventListener('click', shuffleAnimation);
+    startDivinationBtn.addEventListener('click', startDivination);
+    resetBtn.addEventListener('click', resetShuffle);
+    
+    // 加载塔罗牌数据
+    loadTarotData();
+});
+</script>
+</body>
+</html>

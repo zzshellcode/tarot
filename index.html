@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ritual del Tarot</title>
+
+<!-- 优雅字体 -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    background: radial-gradient(circle at center, #0c0a18 0%, #000 100%);
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    text-align: center;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  /* 星光 */
+  .stars {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    top:0;
+    left:0;
+    z-index: 0;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: twinkle 3s infinite ease-in-out;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  #quote {
+    font-size: 1.1rem;
+    opacity: 0;
+    transition: opacity 1.8s ease;
+    text-shadow: 0 0 12px rgba(160,130,255,0.4);
+    padding: 0 15%;
+    line-height: 1.8em;
+    word-break: break-word;
+    white-space: normal;
+    z-index: 1;
+    position: relative;
+  }
+
+  /* 透明发光按钮 */
+  #drawBtn {
+    display: none;
+    margin-top: 3rem;
+    padding: 12px 36px;
+    font-size: 1.3rem;
+    border: 2px solid rgba(200,180,255,0.6);
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    backdrop-filter: blur(6px);
+    z-index: 1;
+    position: relative;
+  }
+
+  #drawBtn:hover {
+    background: rgba(200,180,255,0.15);
+    box-shadow: 0 0 20px rgba(180,140,255,0.5);
+    transform: scale(1.05);
+  }
+
+  @media (max-width: 768px) {
+    #quote { font-size: 1.3rem; padding: 0 8%; }
+    #drawBtn { font-size: 1.1rem; padding: 10px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div id="quote"></div>
+<button id="drawBtn" onclick="alert('✨ Tu destino te espera...')">Sacar una carta</button>
+
+<script>
+const quotes = [
+  "Deja que la calma 🌙 inunde tu alma… escucha la voz de tu interior",
+  "El destino comienza a girar 🔮, anunciando un nuevo capítulo",
+  "Cada carta 🃏 es un reflejo del diálogo con tu ser",
+  "Las estrellas escuchan tu voz ✨…",
+  "No busques las respuestas con prisa; ya vienen hacia ti 🕊️",
+  "Los hilos del destino 🧵 están siendo suavemente tocados",
+  "Siente la quietud… el Tarot 🧘‍♀️ está escuchando",
+  "Deja que tu mente fluya con la luz 🌟 de las estrellas",
+  "Toda confusión se disolverá con la claridad 💡 de la luz",
+  "El universo nunca calla, solo espera a que escuches 👁️",
+  "Tu alma ya está lista para recibir 🕊️ la revelación",
+  "Cada carta guarda un mensaje 🔮 del destino",
+  "Deja que tu intuición te guíe… elige la carta 💫 que te pertenece",
+  "El Tarot no miente, solo refleja 🪞 tu verdad interior"
+];
+
+  const quoteEl = document.getElementById("quote");
+  const btn = document.getElementById("drawBtn");
+
+  // 🌟 创建星星
+  function createStars() {
+    const starContainer = document.getElementById("stars");
+    for (let i = 0; i < 80; i++) {
+      const star = document.createElement("div");
+      star.classList.add("star");
+      const size = Math.random() * 2 + 1;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.animationDuration = `${2 + Math.random() * 3}s`;
+      starContainer.appendChild(star);
+    }
+  }
+
+  // 🌌 随机选择6条语录
+  const quotesToShow = quotes.sort(() => 0.5 - Math.random()).slice(0,6);
+
+  let index = 0;
+  function showNextQuote() {
+    if(index >= quotesToShow.length){
+      btn.style.display = "inline-block";
+      return;
+    }
+    quoteEl.innerHTML = quotesToShow[index];
+    quoteEl.style.opacity = 1;
+
+    setTimeout(() => {
+      quoteEl.style.opacity = 0;
+      index++;
+      setTimeout(showNextQuote, 1800);
+    }, 3000);
+  }
+
+  window.onload = () => {
+    createStars();
+    showNextQuote();
+  }
+</script>
+
+</body>
+</html>
